@@ -2,9 +2,13 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Enrollment } from './entities/enrollment.entity';
 import { EnrollmentDetail } from './entities/enrollment-detail.entity';
+import { User } from './entities/external/user.entity';
 import { Student } from './entities/external/student.entity';
+import { Teacher } from './entities/external/teacher.entity';
+import { AcademicYear } from './entities/external/academic-year.entity';
 import { Term } from './entities/external/term.entity';
 import { Course } from './entities/external/course.entity';
+import { Level } from './entities/external/level.entity';
 import { StudyPlan } from './entities/external/study-plan.entity';
 import { DegreeProgram } from './entities/external/degree-program.entity';
 import { CourseSection } from './entities/external/course-section.entity';
@@ -32,9 +36,13 @@ import { IdempotencyService, PaginationService, TransactionService } from '../co
     TypeOrmModule.forFeature([
       Enrollment,
       EnrollmentDetail,
+      User,
       Student,
+      Teacher,
       Term,
+      AcademicYear,
       Course,
+      Level,
       StudyPlan,
       DegreeProgram,
       CourseSection,
@@ -62,3 +70,4 @@ import { IdempotencyService, PaginationService, TransactionService } from '../co
   ],
 })
 export class EnrollmentsModule {}
+

@@ -2,9 +2,13 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Enrollment } from '../enrollments/entities/enrollment.entity';
 import { EnrollmentDetail } from '../enrollments/entities/enrollment-detail.entity';
+import { User } from '../enrollments/entities/external/user.entity';
 import { Student } from '../enrollments/entities/external/student.entity';
+import { Teacher } from '../enrollments/entities/external/teacher.entity';
+import { AcademicYear } from '../enrollments/entities/external/academic-year.entity';
 import { Term } from '../enrollments/entities/external/term.entity';
 import { Course } from '../enrollments/entities/external/course.entity';
+import { Level } from '../enrollments/entities/external/level.entity';
 import { StudyPlan } from '../enrollments/entities/external/study-plan.entity';
 import { DegreeProgram } from '../enrollments/entities/external/degree-program.entity';
 import { CourseSection } from '../enrollments/entities/external/course-section.entity';
@@ -24,9 +28,13 @@ export const typeOrmConfig = (
   entities: [
     Enrollment,
     EnrollmentDetail,
+    User,
     Student,
+    Teacher,
     Term,
+    AcademicYear,
     Course,
+    Level,
     StudyPlan,
     DegreeProgram,
     CourseSection,
@@ -38,3 +46,4 @@ export const typeOrmConfig = (
   logging:
     configService.get<string>('NODE_ENV') === 'development' ? ['error', 'warn'] : false,
 });
+
