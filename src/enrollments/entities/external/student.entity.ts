@@ -1,0 +1,25 @@
+import { ChildEntity, Column, OneToMany } from 'typeorm';
+import { User } from './user.entity';
+import { Enrollment } from '../enrollment.entity';
+import { Grade } from './grade.entity';
+
+@ChildEntity()
+export class Student extends User {
+  @Column('varchar', { length: 30, unique: true })
+  code: string;
+
+  @Column('date')
+  enrolled_at: Date;
+
+  @Column('date', { nullable: true })
+  birth_date: Date;
+
+  @Column('char', { length: 1, nullable: true })
+  sex: string;
+
+  @OneToMany(() => Enrollment, (enrollment) => enrollment.student)
+  enrollments: Enrollment[];
+
+  @OneToMany(() => Grade, (grade) => grade.student)
+  grades: Grade[];
+}
