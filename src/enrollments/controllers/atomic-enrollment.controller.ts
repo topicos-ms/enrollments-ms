@@ -1,11 +1,19 @@
 import { BadRequestException, Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AtomicEnrollmentService } from '../services';
-import { CreateEnrollmentDetailDto } from '../dto';
+import {
+  CreateEnrollmentDetailBatchDto,
+  CreateEnrollmentDetailDto,
+} from '../dto';
 import { IdempotencyService } from '../../common';
 
 interface AtomicEnrollPayload {
   data: CreateEnrollmentDetailDto;
+  idempotencyKey?: string;
+}
+
+interface AtomicEnrollBatchPayload {
+  data: CreateEnrollmentDetailBatchDto;
   idempotencyKey?: string;
 }
 
@@ -49,6 +57,48 @@ export class AtomicEnrollmentController {
       data: {
         enrollmentDetail: result.data.enrollmentDetail,
         remainingQuota: result.data.remainingQuota,
+        isNewOperation: result.isNew,
+      },
+    };
+  }
+
+  @MessagePattern('enrollments.atomic.enrollBatch')
+  async enrollStudentBatch(@Payload() payload: AtomicEnrollBatchPayload) {
+    const { data, idempotencyKey } = payload;
+
+    if (!idempotencyKey) {
+      throw new BadRequestException(
+        'idempotencyKey is required for enrollment operations',
+      );
+    }
+
+    if (!data?.items?.length) {
+      throw new BadRequestException(
+        'At least one enrollment detail is required to process the batch',
+      );
+    }
+
+    const operationKey = `enroll-batch:${idempotencyKey}`;
+
+    const result = await this.idempotencyService.executeWithIdempotency(
+      operationKey,
+      async () =>
+        this.atomicEnrollmentService.enrollStudentInCourseSectionsBatch(
+          data.items,
+        ),
+    );
+
+    return {
+      success: true,
+      message: result.isNew
+        ? `Inscripciones procesadas exitosamente (solicitadas: ${data.items.length}, completadas: ${result.data.results.length})`
+        : 'Inscripciones procesadas previamente',
+      data: {
+        enrollments: result.data.results,
+        totals: {
+          requested: data.items.length,
+          processed: result.data.results.length,
+        },
         isNewOperation: result.isNew,
       },
     };

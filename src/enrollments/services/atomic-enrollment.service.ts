@@ -30,6 +30,11 @@ export interface EnrollmentResult {
   wasCreated: boolean;
 }
 
+export interface BatchEnrollmentResult {
+  results: EnrollmentResult[];
+  requested: number;
+}
+
 @Injectable()
 export class AtomicEnrollmentService {
   private readonly logger = new Logger(AtomicEnrollmentService.name);
@@ -120,6 +125,103 @@ export class AtomicEnrollmentService {
       3,
       10000,
     );
+  }
+
+  async enrollStudentInCourseSectionsBatch(
+    createEnrollmentDetailDtos: CreateEnrollmentDetailDto[],
+  ): Promise<BatchEnrollmentResult> {
+    if (!createEnrollmentDetailDtos?.length) {
+      throw new BadRequestException(
+        'At least one enrollment detail is required',
+      );
+    }
+
+    this.logger.log(
+      `Iniciando procesamiento de lote de inscripciones (${createEnrollmentDetailDtos.length})`,
+    );
+
+    const normalizedPayload: Array<{
+      dto: CreateEnrollmentDetailDto;
+      resolved: { enrollment_id: string; course_section_id: string };
+    }> = [];
+    const seenPairs = new Set<string>();
+
+    for (const dto of createEnrollmentDetailDtos) {
+      const resolved = await this.resolveIdsForEnrollmentDetail(dto);
+      const pairKey = `${resolved.enrollment_id}:${resolved.course_section_id}`;
+
+      if (seenPairs.has(pairKey)) {
+        throw new DuplicateEnrollmentException(
+          resolved.enrollment_id,
+          resolved.course_section_id,
+          'Duplicate enrollment detail found in batch request',
+        );
+      }
+
+      seenPairs.add(pairKey);
+      normalizedPayload.push({ dto, resolved });
+    }
+
+    const results = await this.transactionService.executeWithRetry(
+      async (manager: EntityManager) => {
+        const processed: EnrollmentResult[] = [];
+
+        for (const { dto, resolved } of normalizedPayload) {
+          const enrollment = await this.validateEnrollmentExists(
+            manager,
+            resolved.enrollment_id,
+          );
+
+          const courseSection = await this.getCourseSectionWithLock(
+            manager,
+            resolved.course_section_id,
+          );
+
+          await this.validateNoDuplicateEnrollment(
+            manager,
+            resolved.enrollment_id,
+            resolved.course_section_id,
+          );
+
+          await this.performAcademicValidations(
+            manager,
+            enrollment,
+            courseSection,
+          );
+
+          this.validateQuotaAvailable(courseSection);
+
+          const enrollmentDetail = await this.createEnrollmentDetail(
+            manager,
+            { ...dto, ...resolved },
+          );
+
+          const updatedCourseSection = await this.decrementQuota(
+            manager,
+            courseSection,
+          );
+
+          processed.push({
+            enrollmentDetail,
+            remainingQuota: updatedCourseSection.quota_available,
+            wasCreated: true,
+          });
+        }
+
+        return processed;
+      },
+      3,
+      10000,
+    );
+
+    this.logger.log(
+      `Lote procesado correctamente (${results.length}/${createEnrollmentDetailDtos.length})`,
+    );
+
+    return {
+      results,
+      requested: createEnrollmentDetailDtos.length,
+    };
   }
 
   private async resolveIdsForEnrollmentDetail(dto: CreateEnrollmentDetailDto): Promise<{ enrollment_id: string; course_section_id: string }> {

@@ -4,3 +4,5 @@ export * from './list-enrollments.dto';
 export * from './create-enrollment-detail.dto';
 export * from './update-enrollment-detail.dto';
 export * from './list-enrollment-details.dto';
+export * from './create-enrollment-detail-batch.dto';
+
