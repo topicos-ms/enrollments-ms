@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { envs } from './config/envs';
+import { EventPublisherInterceptor } from './common/events/event-publisher.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('EnrollmentsMS');
@@ -27,6 +28,8 @@ async function bootstrap() {
       },
     }),
   );
+
+  app.useGlobalInterceptors(app.get(EventPublisherInterceptor));
 
   await app.listen();
   logger.log(`Enrollments microservice listening on port ${envs.port}`);
