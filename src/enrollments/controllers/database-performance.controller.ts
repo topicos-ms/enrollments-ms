@@ -62,10 +62,10 @@ export class DatabasePerformanceController {
         gradeId: grade.id,
         finalGrade: grade.final_grade,
         courseSection: {
-          id: grade.course_section.id,
+          id: grade.courseSection.id,
           course: {
-            id: grade.course_section.course.id,
-            code: grade.course_section.course.code,
+            id: grade.courseSection.course.id,
+            code: grade.courseSection.course.code,
           },
         },
       })),
@@ -99,10 +99,10 @@ export class DatabasePerformanceController {
         timeStart: schedule.time_start,
         timeEnd: schedule.time_end,
         courseSection: {
-          groupLabel: schedule.course_section.group_label,
+          groupLabel: schedule.courseSection.group_label,
           course: {
-            code: schedule.course_section.course.code,
-            name: schedule.course_section.course.name,
+            code: schedule.courseSection.course.code,
+            name: schedule.courseSection.course.name,
           },
         },
       })),
@@ -210,13 +210,13 @@ export class DatabasePerformanceController {
         id: detail.id,
         courseState: detail.course_state,
         courseSection: {
-          id: detail.course_section.id,
-          groupLabel: detail.course_section.group_label,
+          id: detail.courseSection.id,
+          groupLabel: detail.courseSection.group_label,
           course: {
-            id: detail.course_section.course.id,
-            code: detail.course_section.course.code,
-            name: detail.course_section.course.name,
-            credits: detail.course_section.course.credits,
+            id: detail.courseSection.course.id,
+            code: detail.courseSection.course.code,
+            name: detail.courseSection.course.name,
+            credits: detail.courseSection.course.credits,
           },
         },
       })),

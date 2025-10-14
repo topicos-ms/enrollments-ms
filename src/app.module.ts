@@ -6,6 +6,7 @@ import { typeOrmConfig } from './config/typeorm.config';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { envs } from './config/envs';
 import { EventPublisherInterceptor, EVENT_EMITTER } from './common/events/event-publisher.interceptor';
+import { HealthController } from './common/health.controller';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { EventPublisherInterceptor, EVENT_EMITTER } from './common/events/event-
     ]),
     EnrollmentsModule,
   ],
+  controllers: [HealthController],
   providers: [EventPublisherInterceptor],
   exports: [EventPublisherInterceptor],
 })

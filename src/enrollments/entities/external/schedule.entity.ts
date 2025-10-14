@@ -60,5 +60,5 @@ export class Schedule {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'course_section_id' })
-  course_section: CourseSection;
+  courseSection: CourseSection;
 }

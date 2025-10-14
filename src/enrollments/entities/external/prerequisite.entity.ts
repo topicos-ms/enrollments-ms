@@ -47,11 +47,15 @@ export class Prerequisite {
   })
   updated_at: Date;
 
-  @ManyToOne(() => Course, (course) => course.prerequisites_as_main)
+  @ManyToOne(() => Course, (course) => course.prerequisites_as_main, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'main_course_id' })
   main_course: Course;
 
-  @ManyToOne(() => Course, (course) => course.prerequisites_as_required)
+  @ManyToOne(() => Course, (course) => course.prerequisites_as_required, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'required_course_id' })
   required_course: Course;
 }

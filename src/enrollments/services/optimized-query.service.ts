@@ -42,14 +42,17 @@ export class OptimizedQueryService {
     studentId: string,
     courseIds: string[],
   ): Promise<Grade[]> {
+    if (!courseIds.length) {
+      return [];
+    }
+
     return this.gradeRepository
       .createQueryBuilder('g')
-      .select(['g.id', 'g.final_grade', 'cs.id', 'c.id', 'c.code'])
-      .innerJoin('g.course_section', 'cs')
-      .innerJoin('cs.course', 'c')
+      .innerJoinAndSelect('g.courseSection', 'cs')
+      .innerJoinAndSelect('cs.course', 'c')
       .where('g.student_id = :studentId', { studentId })
       .andWhere('c.id IN (:...courseIds)', { courseIds })
-      .andWhere('g.final_grade >= 60')
+      .andWhere('g.final_grade >= 51')
       .getMany();
   }
 
@@ -75,7 +78,7 @@ export class OptimizedQueryService {
         'c.code',
         'c.name',
       ])
-      .innerJoin('s.course_section', 'cs')
+      .innerJoin('s.courseSection', 'cs')
       .innerJoin('cs.course', 'c')
       .where('s.course_section_id IN (:...courseSectionIds)', {
         courseSectionIds,
@@ -103,7 +106,7 @@ export class OptimizedQueryService {
       .createQueryBuilder('ed')
       .select('COUNT(*)', 'count')
       .innerJoin('ed.enrollment', 'e')
-      .innerJoin('ed.course_section', 'cs')
+      .innerJoin('ed.courseSection', 'cs')
       .where('e.student_id = :studentId', { studentId })
       .andWhere('cs.term_id = :termId', { termId })
       .andWhere('ed.course_state = :status', { status: 'enrolled' })
@@ -133,7 +136,7 @@ export class OptimizedQueryService {
         'c.credits',
       ])
       .innerJoin('ed.enrollment', 'e')
-      .innerJoin('ed.course_section', 'cs')
+      .innerJoin('ed.courseSection', 'cs')
       .innerJoin('cs.course', 'c')
       .where('e.student_id = :studentId', { studentId })
       .andWhere('cs.term_id = :termId', { termId })
@@ -161,7 +164,7 @@ export class OptimizedQueryService {
         'c.code',
         'c.name',
       ])
-      .innerJoin('s.course_section', 'cs')
+      .innerJoin('s.courseSection', 'cs')
       .innerJoin('cs.course', 'c')
       .where('s.course_section_id IN (:...courseSectionIds)', {
         courseSectionIds,
@@ -182,11 +185,11 @@ export class OptimizedQueryService {
     const grade = await this.gradeRepository
       .createQueryBuilder('g')
       .select('g.id')
-      .innerJoin('g.course_section', 'cs')
+      .innerJoin('g.courseSection', 'cs')
       .innerJoin('cs.course', 'c')
       .where('g.student_id = :studentId', { studentId })
       .andWhere('c.id = :courseId', { courseId })
-      .andWhere('g.final_grade >= 60')
+      .andWhere('g.final_grade >= 51')
       .getOne();
 
     return !!grade;
@@ -226,7 +229,9 @@ export class OptimizedQueryService {
       ? await this.getApprovedCoursesByStudent(studentId, allRequiredCourseIds)
       : [];
     const approvedCourseIds = new Set(
-      approvedGrades.map((g) => g.course_section.course.id),
+      approvedGrades
+        .map((grade) => grade.courseSection?.course?.id)
+        .filter((courseId): courseId is string => Boolean(courseId)),
     );
 
     return courseIds.map((courseId) => {

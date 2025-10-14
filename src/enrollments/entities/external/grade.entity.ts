@@ -33,7 +33,7 @@ export class Grade {
   student_id: string;
 
   @Column('numeric', { precision: 5, scale: 2, nullable: true })
-  final_grade: number;
+  final_grade: number | null;
 
   @CreateDateColumn({
     type: 'timestamptz',
@@ -49,7 +49,7 @@ export class Grade {
 
   @ManyToOne(() => CourseSection)
   @JoinColumn({ name: 'course_section_id' })
-  course_section: CourseSection;
+  courseSection: CourseSection;
 
   @ManyToOne(() => Student)
   @JoinColumn({ name: 'student_id' })

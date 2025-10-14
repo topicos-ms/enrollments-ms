@@ -21,6 +21,7 @@ import {
   AcademicValidationService,
   AtomicEnrollmentService,
   OptimizedQueryService,
+  CourseRecommendationService,
 } from './services';
 import {
   EnrollmentDetailsController,
@@ -28,6 +29,7 @@ import {
   AcademicValidationController,
   AtomicEnrollmentController,
   DatabasePerformanceController,
+  StudentAdvisoryController,
 } from './controllers';
 import { IdempotencyService, PaginationService, TransactionService } from '../common';
 
@@ -57,6 +59,7 @@ import { IdempotencyService, PaginationService, TransactionService } from '../co
     AcademicValidationController,
     AtomicEnrollmentController,
     DatabasePerformanceController,
+    StudentAdvisoryController,
   ],
   providers: [
     EnrollmentsService,
@@ -64,6 +67,7 @@ import { IdempotencyService, PaginationService, TransactionService } from '../co
     AcademicValidationService,
     AtomicEnrollmentService,
     OptimizedQueryService,
+    CourseRecommendationService,
     PaginationService,
     TransactionService,
     IdempotencyService,

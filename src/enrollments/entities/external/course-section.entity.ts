@@ -32,8 +32,11 @@ export class CourseSection {
   @Column('uuid')
   term_id: string;
 
-  @Column('uuid')
-  teacher_id: string;
+  @Column('uuid', { nullable: true })
+  classroom_id: string | null;
+
+  @Column('uuid', { nullable: true })
+  teacher_id: string | null;
 
   @Column('varchar', { length: 10 })
   group_label: string;
@@ -49,6 +52,9 @@ export class CourseSection {
 
   @Column('smallint')
   quota_available: number;
+
+  @Column('varchar', { length: 20, default: 'Active' })
+  status: string;
 
   @CreateDateColumn({
     type: 'timestamptz',
@@ -70,19 +76,19 @@ export class CourseSection {
   @JoinColumn({ name: 'term_id' })
   term: Term;
 
-  @ManyToOne(() => Teacher)
+  @ManyToOne(() => Teacher, { nullable: true })
   @JoinColumn({ name: 'teacher_id' })
-  teacher: Teacher;
+  teacher: Teacher | null;
 
-  @OneToMany(() => Schedule, (schedule) => schedule.course_section, {
+  @OneToMany(() => Schedule, (schedule) => schedule.courseSection, {
     cascade: true,
   })
   schedules: Schedule[];
 
-  @OneToMany(() => Grade, (grade) => grade.course_section)
+  @OneToMany(() => Grade, (grade) => grade.courseSection)
   grades: Grade[];
 
-  @OneToMany(() => EnrollmentDetail, (detail) => detail.course_section)
+  @OneToMany(() => EnrollmentDetail, (detail) => detail.courseSection)
   enrollment_details: EnrollmentDetail[];
 }
 

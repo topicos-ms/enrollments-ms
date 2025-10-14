@@ -149,7 +149,7 @@ export class AcademicValidationService {
     }
 
     const enrolledSectionIds = enrolledDetails.map(
-      (detail) => detail.course_section.id,
+      (detail) => detail.courseSection.id,
     );
     const enrolledSchedules =
       await this.optimizedQueryService.getSchedulesBySections(
@@ -162,7 +162,7 @@ export class AcademicValidationService {
       for (const existingSchedule of enrolledSchedules) {
         if (this.hasTimeOverlap(newSchedule, existingSchedule)) {
           conflicts.push({
-            existingCourseSection: `${existingSchedule.course_section.course.code} - Grupo ${existingSchedule.course_section.group_label}`,
+            existingCourseSection: `${existingSchedule.courseSection.course.code} - Grupo ${existingSchedule.courseSection.group_label}`,
             conflictingTime: `${newSchedule.time_start} - ${newSchedule.time_end}`,
             day: newSchedule.weekday,
           });
@@ -325,7 +325,7 @@ export class AcademicValidationService {
     }
 
     const enrolledSectionIds = enrolledDetails.map(
-      (detail) => detail.course_section.id,
+      (detail) => detail.courseSection.id,
     );
     const enrolledSchedules =
       await this.optimizedQueryService.getSchedulesBySections(
@@ -344,7 +344,7 @@ export class AcademicValidationService {
             this.timeToMinutes(existingSchedule.time_start)
         ) {
           conflicts.push({
-            existingCourseSection: `${existingSchedule.course_section.course.code} - Grupo ${existingSchedule.course_section.group_label}`,
+            existingCourseSection: `${existingSchedule.courseSection.course.code} - Grupo ${existingSchedule.courseSection.group_label}`,
             conflictingTime: `${proposedSchedule.timeStart} - ${proposedSchedule.timeEnd}`,
             day: proposedSchedule.weekday,
           });

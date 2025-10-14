@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { DegreeProgram } from './degree-program.entity';
 import { Course } from './course.entity';
+import { Student } from './student.entity';
 
 @Entity('study_plan')
 export class StudyPlan {
@@ -52,4 +53,7 @@ export class StudyPlan {
 
   @OneToMany(() => Course, (course) => course.study_plan)
   courses: Course[];
+
+  @OneToMany(() => Student, (student) => student.study_plan)
+  students: Student[];
 }

@@ -63,5 +63,5 @@ export class EnrollmentDetail {
     },
   )
   @JoinColumn({ name: 'course_section_id' })
-  course_section: CourseSection;
+  courseSection: CourseSection;
 }
