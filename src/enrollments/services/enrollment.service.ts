@@ -80,7 +80,7 @@ export class EnrollmentsService {
       .leftJoinAndSelect('enrollment.student', 'student')
       .leftJoinAndSelect('enrollment.term', 'term')
       .leftJoinAndSelect('enrollment.enrollment_details', 'details')
-      .leftJoinAndSelect('details.course_section', 'course_section');
+      .leftJoinAndSelect('details.courseSection', 'courseSection');
 
     if (student_id) {
       qb.andWhere('enrollment.student_id = :student_id', { student_id });
