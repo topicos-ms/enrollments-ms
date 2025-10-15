@@ -17,6 +17,7 @@ import {
   EnrollmentNotActiveException,
 } from '../exceptions';
 import { AcademicValidationService } from './academic-validation.service';
+import { EnrollmentErrorHandler } from './enrollment-error-handler.service';
 import { MultipleValidationException } from '../exceptions/academic-validation.exceptions';
 import { Student } from '../entities/external/student.entity';
 import { Term } from '../entities/external/term.entity';
@@ -58,6 +59,7 @@ export class AtomicEnrollmentService {
     private readonly degreeProgramRepository: Repository<DegreeProgram>,
     private readonly transactionService: TransactionService,
     private readonly academicValidationService: AcademicValidationService,
+    private readonly errorHandler: EnrollmentErrorHandler,
   ) {}
 
   /**

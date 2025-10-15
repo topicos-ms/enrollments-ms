@@ -1,6 +1,7 @@
 import { BadRequestException, Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AtomicEnrollmentService } from '../services';
+import { EnrollmentErrorHandler } from '../services/enrollment-error-handler.service';
 import {
   CreateEnrollmentDetailBatchDto,
   CreateEnrollmentDetailDto,
@@ -26,6 +27,7 @@ export class AtomicEnrollmentController {
   constructor(
     private readonly atomicEnrollmentService: AtomicEnrollmentService,
     private readonly idempotencyService: IdempotencyService,
+    private readonly errorHandler: EnrollmentErrorHandler,
   ) {}
 
   @MessagePattern('enrollments.atomic.enroll')
@@ -40,26 +42,38 @@ export class AtomicEnrollmentController {
 
     const operationKey = `enroll:${idempotencyKey}:${data.enrollment_id}:${data.course_section_id}`;
 
-    const result = await this.idempotencyService.executeWithIdempotency(
-      operationKey,
-      async () => {
-        return await this.atomicEnrollmentService.enrollStudentInCourseSection(
-          data,
-        );
-      },
-    );
+    try {
+      const result = await this.idempotencyService.executeWithIdempotency(
+        operationKey,
+        async () => {
+          return await this.atomicEnrollmentService.enrollStudentInCourseSection(
+            data,
+          );
+        },
+      );
 
-    return {
-      success: true,
-      message: result.isNew
-        ? 'Inscripción realizada exitosamente'
-        : 'Inscripción procesada previamente',
-      data: {
-        enrollmentDetail: result.data.enrollmentDetail,
-        remainingQuota: result.data.remainingQuota,
-        isNewOperation: result.isNew,
-      },
-    };
+      return {
+        success: true,
+        message: result.isNew
+          ? 'Inscripción realizada exitosamente'
+          : 'Inscripción procesada previamente',
+        data: {
+          enrollmentDetail: result.data.enrollmentDetail,
+          remainingQuota: result.data.remainingQuota,
+          isNewOperation: result.isNew,
+        },
+      };
+    } catch (error) {
+      const errorInfo = this.errorHandler.handleError(error);
+      return {
+        success: false,
+        message: errorInfo.message,
+        error: {
+          code: errorInfo.code,
+          details: errorInfo.details,
+        },
+      };
+    }
   }
 
   @MessagePattern('enrollments.atomic.enrollBatch')
@@ -80,28 +94,40 @@ export class AtomicEnrollmentController {
 
     const operationKey = `enroll-batch:${idempotencyKey}`;
 
-    const result = await this.idempotencyService.executeWithIdempotency(
-      operationKey,
-      async () =>
-        this.atomicEnrollmentService.enrollStudentInCourseSectionsBatch(
-          data.items,
-        ),
-    );
+    try {
+      const result = await this.idempotencyService.executeWithIdempotency(
+        operationKey,
+        async () =>
+          this.atomicEnrollmentService.enrollStudentInCourseSectionsBatch(
+            data.items,
+          ),
+      );
 
-    return {
-      success: true,
-      message: result.isNew
-        ? `Inscripciones procesadas exitosamente (solicitadas: ${data.items.length}, completadas: ${result.data.results.length})`
-        : 'Inscripciones procesadas previamente',
-      data: {
-        enrollments: result.data.results,
-        totals: {
-          requested: data.items.length,
-          processed: result.data.results.length,
+      return {
+        success: true,
+        message: result.isNew
+          ? `Inscripciones procesadas exitosamente (solicitadas: ${data.items.length}, completadas: ${result.data.results.length})`
+          : 'Inscripciones procesadas previamente',
+        data: {
+          enrollments: result.data.results,
+          totals: {
+            requested: data.items.length,
+            processed: result.data.results.length,
+          },
+          isNewOperation: result.isNew,
         },
-        isNewOperation: result.isNew,
-      },
-    };
+      };
+    } catch (error) {
+      const errorInfo = this.errorHandler.handleError(error);
+      return {
+        success: false,
+        message: errorInfo.message,
+        error: {
+          code: errorInfo.code,
+          details: errorInfo.details,
+        },
+      };
+    }
   }
 
   @MessagePattern('enrollments.atomic.quotaStatus')

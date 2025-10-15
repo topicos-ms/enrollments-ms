@@ -22,6 +22,7 @@ import {
   AtomicEnrollmentService,
   OptimizedQueryService,
   CourseRecommendationService,
+  EnrollmentErrorHandler,
 } from './services';
 import {
   EnrollmentDetailsController,
@@ -68,6 +69,7 @@ import { IdempotencyService, PaginationService, TransactionService } from '../co
     AtomicEnrollmentService,
     OptimizedQueryService,
     CourseRecommendationService,
+    EnrollmentErrorHandler,
     PaginationService,
     TransactionService,
     IdempotencyService,
