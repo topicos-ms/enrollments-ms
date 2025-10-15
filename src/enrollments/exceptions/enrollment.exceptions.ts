@@ -1,50 +1,50 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
+/**
+ * Error cuando no hay cupos disponibles
+ */
 export class QuotaExceededException extends HttpException {
-  constructor(courseSectionId: string, availableQuota: number, message?: string) {
-    const defaultMessage = `No hay cupos disponibles en la sección. Cupos disponibles: ${availableQuota}`;
+  constructor(courseSectionId: string, availableQuota: number) {
     super(
       {
-        message: message ?? defaultMessage,
-        error: 'Quota Exceeded',
-        statusCode: HttpStatus.CONFLICT,
+        message: 'No hay cupos disponibles para esta materia',
+        code: 'QUOTA_EXCEEDED',
         courseSectionId,
         availableQuota,
-        timestamp: new Date().toISOString(),
       },
       HttpStatus.CONFLICT,
     );
   }
 }
 
+/**
+ * Error cuando el estudiante ya está inscrito (idempotencia)
+ */
 export class DuplicateEnrollmentException extends HttpException {
-  constructor(enrollmentId: string, courseSectionId: string, message?: string) {
-    const defaultMessage = 'El estudiante ya está inscrito en esta sección de curso';
+  constructor(enrollmentId: string, courseSectionId: string) {
     super(
       {
-        message: message ?? defaultMessage,
-        error: 'Duplicate Enrollment',
-        statusCode: HttpStatus.CONFLICT,
+        message: 'Ya te encuentras inscrito en esta materia',
+        code: 'ALREADY_ENROLLED',
         enrollmentId,
         courseSectionId,
-        timestamp: new Date().toISOString(),
       },
       HttpStatus.CONFLICT,
     );
   }
 }
 
+/**
+ * Error cuando la inscripción no está activa
+ */
 export class EnrollmentNotActiveException extends HttpException {
-  constructor(enrollmentId: string, currentState: string, message?: string) {
-    const defaultMessage = `La inscripción no está activa. Estado actual: ${currentState}`;
+  constructor(enrollmentId: string, currentState: string) {
     super(
       {
-        message: message ?? defaultMessage,
-        error: 'Enrollment Not Active',
-        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Tu inscripción no está activa',
+        code: 'ENROLLMENT_NOT_ACTIVE',
         enrollmentId,
         currentState,
-        timestamp: new Date().toISOString(),
       },
       HttpStatus.BAD_REQUEST,
     );

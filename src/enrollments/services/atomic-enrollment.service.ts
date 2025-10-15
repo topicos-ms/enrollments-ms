@@ -63,60 +63,28 @@ export class AtomicEnrollmentService {
   ) {}
 
   /**
-   * Inscribe a un estudiante en una sección de curso de forma atómica
-   * Controla cupos y previene inscripciones duplicadas
+   * Inscribe a un estudiante en una sección de curso
    */
   async enrollStudentInCourseSection(
     createEnrollmentDetailDto: CreateEnrollmentDetailDto,
   ): Promise<EnrollmentResult> {
-    // Resolver identificadores alternativos, si vienen
-    const resolved = await this.resolveIdsForEnrollmentDetail(
-      createEnrollmentDetailDto,
-    );
-
-    this.logger.log(
-      `Iniciando inscripción: Enrollment ${resolved.enrollment_id} -> CourseSection ${resolved.course_section_id}`,
-    );
+    const resolved = await this.resolveIdsForEnrollmentDetail(createEnrollmentDetailDto);
+    
+    this.logger.log(`Inscribiendo: Enrollment ${resolved.enrollment_id} -> CourseSection ${resolved.course_section_id}`);
 
     return await this.transactionService.executeWithRetry(
       async (manager: EntityManager) => {
-        const enrollment = await this.validateEnrollmentExists(
-          manager,
-          resolved.enrollment_id,
-        );
+        const enrollment = await this.validateEnrollmentExists(manager, resolved.enrollment_id);
+        const courseSection = await this.getCourseSectionWithLock(manager, resolved.course_section_id);
 
-        const courseSection = await this.getCourseSectionWithLock(
-          manager,
-          resolved.course_section_id,
-        );
-
-        await this.validateNoDuplicateEnrollment(
-          manager,
-          resolved.enrollment_id,
-          resolved.course_section_id,
-        );
-
-        await this.performAcademicValidations(
-          manager,
-          enrollment,
-          courseSection,
-        );
-
+        await this.validateNoDuplicateEnrollment(manager, resolved.enrollment_id, resolved.course_section_id);
+        await this.performAcademicValidations(manager, enrollment, courseSection);
         this.validateQuotaAvailable(courseSection);
 
-        const enrollmentDetail = await this.createEnrollmentDetail(
-          manager,
-          { ...createEnrollmentDetailDto, ...resolved },
-        );
+        const enrollmentDetail = await this.createEnrollmentDetail(manager, { ...createEnrollmentDetailDto, ...resolved });
+        const updatedCourseSection = await this.decrementQuota(manager, courseSection);
 
-        const updatedCourseSection = await this.decrementQuota(
-          manager,
-          courseSection,
-        );
-
-        this.logger.log(
-          `Inscripción exitosa: Student en CourseSection ${courseSection.id}, cupos restantes: ${updatedCourseSection.quota_available}`,
-        );
+        this.logger.log(`Inscripción exitosa. Cupos restantes: ${updatedCourseSection.quota_available}`);
 
         return {
           enrollmentDetail,
@@ -129,101 +97,91 @@ export class AtomicEnrollmentService {
     );
   }
 
+  /**
+   * Inscribe múltiples materias en lote
+   */
   async enrollStudentInCourseSectionsBatch(
     createEnrollmentDetailDtos: CreateEnrollmentDetailDto[],
   ): Promise<BatchEnrollmentResult> {
     if (!createEnrollmentDetailDtos?.length) {
-      throw new BadRequestException(
-        'At least one enrollment detail is required',
-      );
+      throw new BadRequestException('At least one enrollment detail is required');
     }
 
-    this.logger.log(
-      `Iniciando procesamiento de lote de inscripciones (${createEnrollmentDetailDtos.length})`,
+    this.logger.log(`Procesando lote de ${createEnrollmentDetailDtos.length} inscripciones`);
+
+    // Resolver IDs y validar duplicados en el request
+    const normalizedPayload = await this.resolveAndValidateBatchRequest(createEnrollmentDetailDtos);
+
+    // Procesar inscripciones en transacción
+    const results = await this.transactionService.executeWithRetry(
+      async (manager: EntityManager) => this.processEnrollmentBatch(manager, normalizedPayload),
+      3,
+      10000,
     );
 
+    this.logger.log(`Lote procesado: ${results.length}/${createEnrollmentDetailDtos.length} exitosas`);
+
+    return {
+      results,
+      requested: createEnrollmentDetailDtos.length,
+    };
+  }
+
+  /**
+   * Resuelve IDs y valida que no haya duplicados en el request
+   */
+  private async resolveAndValidateBatchRequest(
+    dtos: CreateEnrollmentDetailDto[],
+  ): Promise<Array<{ dto: CreateEnrollmentDetailDto; resolved: { enrollment_id: string; course_section_id: string } }>> {
     const normalizedPayload: Array<{
       dto: CreateEnrollmentDetailDto;
       resolved: { enrollment_id: string; course_section_id: string };
     }> = [];
     const seenPairs = new Set<string>();
 
-    for (const dto of createEnrollmentDetailDtos) {
+    for (const dto of dtos) {
       const resolved = await this.resolveIdsForEnrollmentDetail(dto);
       const pairKey = `${resolved.enrollment_id}:${resolved.course_section_id}`;
 
       if (seenPairs.has(pairKey)) {
-        throw new DuplicateEnrollmentException(
-          resolved.enrollment_id,
-          resolved.course_section_id,
-          'Duplicate enrollment detail found in batch request',
-        );
+        throw new DuplicateEnrollmentException(resolved.enrollment_id, resolved.course_section_id);
       }
 
       seenPairs.add(pairKey);
       normalizedPayload.push({ dto, resolved });
     }
 
-    const results = await this.transactionService.executeWithRetry(
-      async (manager: EntityManager) => {
-        const processed: EnrollmentResult[] = [];
+    return normalizedPayload;
+  }
 
-        for (const { dto, resolved } of normalizedPayload) {
-          const enrollment = await this.validateEnrollmentExists(
-            manager,
-            resolved.enrollment_id,
-          );
+  /**
+   * Procesa el lote de inscripciones en una transacción
+   */
+  private async processEnrollmentBatch(
+    manager: EntityManager,
+    payload: Array<{ dto: CreateEnrollmentDetailDto; resolved: { enrollment_id: string; course_section_id: string } }>,
+  ): Promise<EnrollmentResult[]> {
+    const processed: EnrollmentResult[] = [];
 
-          const courseSection = await this.getCourseSectionWithLock(
-            manager,
-            resolved.course_section_id,
-          );
+    for (const { dto, resolved } of payload) {
+      const enrollment = await this.validateEnrollmentExists(manager, resolved.enrollment_id);
+      const courseSection = await this.getCourseSectionWithLock(manager, resolved.course_section_id);
 
-          await this.validateNoDuplicateEnrollment(
-            manager,
-            resolved.enrollment_id,
-            resolved.course_section_id,
-          );
+      await this.validateNoDuplicateEnrollment(manager, resolved.enrollment_id, resolved.course_section_id);
+      await this.performAcademicValidations(manager, enrollment, courseSection);
+      this.validateQuotaAvailable(courseSection);
 
-          await this.performAcademicValidations(
-            manager,
-            enrollment,
-            courseSection,
-          );
+      const enrollmentDetail = await this.createEnrollmentDetail(manager, { ...dto, ...resolved });
+      const updatedCourseSection = await this.decrementQuota(manager, courseSection);
 
-          this.validateQuotaAvailable(courseSection);
+      processed.push({
+        enrollmentDetail,
+        remainingQuota: updatedCourseSection.quota_available,
+        wasCreated: true,
+      });
+    }
 
-          const enrollmentDetail = await this.createEnrollmentDetail(
-            manager,
-            { ...dto, ...resolved },
-          );
-
-          const updatedCourseSection = await this.decrementQuota(
-            manager,
-            courseSection,
-          );
-
-          processed.push({
-            enrollmentDetail,
-            remainingQuota: updatedCourseSection.quota_available,
-            wasCreated: true,
-          });
-        }
-
-        return processed;
-      },
-      3,
-      10000,
-    );
-
-    this.logger.log(
-      `Lote procesado correctamente (${results.length}/${createEnrollmentDetailDtos.length})`,
-    );
-
-    return {
-      results,
-      requested: createEnrollmentDetailDtos.length,
-    };
+    return processed;
   }
 
   private async resolveIdsForEnrollmentDetail(dto: CreateEnrollmentDetailDto): Promise<{ enrollment_id: string; course_section_id: string }> {
@@ -324,57 +282,43 @@ export class AtomicEnrollmentService {
   }
 
   /**
-   * Verifica que la inscripción (enrollment) existe y está activa
+   * Valida que la inscripción existe y está activa
    */
-  private async validateEnrollmentExists(
-    manager: EntityManager,
-    enrollmentId: string,
-  ): Promise<Enrollment> {
+  private async validateEnrollmentExists(manager: EntityManager, enrollmentId: string): Promise<Enrollment> {
     const enrollment = await manager.findOne(Enrollment, {
       where: { id: enrollmentId },
       relations: ['student'],
     });
 
     if (!enrollment) {
-      throw new NotFoundException(
-        `Inscripción con ID ${enrollmentId} no encontrada`,
-      );
+      throw new NotFoundException(`Inscripción con ID ${enrollmentId} no encontrada`);
     }
 
     if (enrollment.state !== 'Active') {
-      throw new EnrollmentNotActiveException(
-        enrollmentId,
-        enrollment.state,
-        `La inscripción ${enrollmentId} no está activa (estado: ${enrollment.state})`,
-      );
+      throw new EnrollmentNotActiveException(enrollmentId, enrollment.state);
     }
 
     return enrollment;
   }
 
   /**
-   * Obtiene la sección del curso con lock pesimista para evitar condiciones de carrera
+   * Obtiene la sección con lock para evitar condiciones de carrera
    */
-  private async getCourseSectionWithLock(
-    manager: EntityManager,
-    courseSectionId: string,
-  ): Promise<CourseSection> {
+  private async getCourseSectionWithLock(manager: EntityManager, courseSectionId: string): Promise<CourseSection> {
     const courseSection = await manager.findOne(CourseSection, {
       where: { id: courseSectionId },
       lock: { mode: 'pessimistic_write' },
     });
 
     if (!courseSection) {
-      throw new NotFoundException(
-        `Sección de curso con ID ${courseSectionId} no encontrada`,
-      );
+      throw new NotFoundException(`Sección de curso con ID ${courseSectionId} no encontrada`);
     }
 
     return courseSection;
   }
 
   /**
-   * Verifica que no existe una inscripción duplicada
+   * Verifica que no existe inscripción duplicada
    */
   private async validateNoDuplicateEnrollment(
     manager: EntityManager,
@@ -382,18 +326,11 @@ export class AtomicEnrollmentService {
     courseSectionId: string,
   ): Promise<void> {
     const existingDetail = await manager.findOne(EnrollmentDetail, {
-      where: {
-        enrollment_id: enrollmentId,
-        course_section_id: courseSectionId,
-      },
+      where: { enrollment_id: enrollmentId, course_section_id: courseSectionId },
     });
 
     if (existingDetail) {
-      throw new DuplicateEnrollmentException(
-        enrollmentId,
-        courseSectionId,
-        `El estudiante ya está inscrito en esta sección de curso`,
-      );
+      throw new DuplicateEnrollmentException(enrollmentId, courseSectionId);
     }
   }
 
@@ -402,11 +339,7 @@ export class AtomicEnrollmentService {
    */
   private validateQuotaAvailable(courseSection: CourseSection): void {
     if (courseSection.quota_available <= 0) {
-      throw new QuotaExceededException(
-        courseSection.id,
-        courseSection.quota_available,
-        `No hay cupos disponibles en la sección ${courseSection.group_label}. Cupos disponibles: ${courseSection.quota_available}`,
-      );
+      throw new QuotaExceededException(courseSection.id, courseSection.quota_available);
     }
   }
 
@@ -429,34 +362,21 @@ export class AtomicEnrollmentService {
   /**
    * Reduce el cupo disponible de forma atómica
    */
-  private async decrementQuota(
-    manager: EntityManager,
-    courseSection: CourseSection,
-  ): Promise<CourseSection> {
+  private async decrementQuota(manager: EntityManager, courseSection: CourseSection): Promise<CourseSection> {
     const result = await manager
       .createQueryBuilder()
       .update(CourseSection)
-      .set({
-        quota_available: () => 'quota_available - 1',
-        updated_at: new Date(),
-      })
+      .set({ quota_available: () => 'quota_available - 1', updated_at: new Date() })
       .where('id = :id', { id: courseSection.id })
       .andWhere('quota_available > 0')
       .execute();
 
     if (result.affected === 0) {
-      throw new QuotaExceededException(
-        courseSection.id,
-        0,
-        'No se pudo reducir el cupo. Posiblemente no hay cupos disponibles.',
-      );
+      throw new QuotaExceededException(courseSection.id, 0);
     }
 
-    const updatedCourseSection = await manager.findOne(CourseSection, {
-      where: { id: courseSection.id },
-    });
-
-    return updatedCourseSection!;
+    const updated = await manager.findOne(CourseSection, { where: { id: courseSection.id } });
+    return updated!;
   }
 
   /**
@@ -489,44 +409,27 @@ export class AtomicEnrollmentService {
   }
 
   /**
-   * Realiza todas las validaciones académicas antes de la inscripción
+   * Realiza validaciones académicas antes de la inscripción
    */
   private async performAcademicValidations(
     manager: EntityManager,
     enrollment: Enrollment,
     courseSection: CourseSection,
   ): Promise<void> {
-    this.logger.log(
-      `Iniciando validaciones académicas para Student ${enrollment.student.id} en CourseSection ${courseSection.id}`,
+    const validationResult = await this.academicValidationService.validateEnrollment(
+      enrollment.student.id,
+      courseSection.id,
+      courseSection.term_id,
+      manager,
     );
 
-    const validationResult =
-      await this.academicValidationService.validateEnrollment(
-        enrollment.student.id,
-        courseSection.id,
-        courseSection.term_id,
-        manager,
-      );
-
     if (!validationResult.isValid) {
-      this.logger.warn(
-        `Validaciones académicas fallidas para Student ${enrollment.student.id}: ${validationResult.errors.join('; ')}`,
-      );
-
-      throw new MultipleValidationException(
-        validationResult.errors,
-        validationResult.warnings,
-      );
+      this.logger.warn(`Validaciones fallidas: ${validationResult.errors.join('; ')}`);
+      throw new MultipleValidationException(validationResult.errors, validationResult.warnings);
     }
 
     if (validationResult.warnings.length > 0) {
-      this.logger.warn(
-        `Advertencias académicas para Student ${enrollment.student.id}: ${validationResult.warnings.join('; ')}`,
-      );
+      this.logger.warn(`Advertencias: ${validationResult.warnings.join('; ')}`);
     }
-
-    this.logger.log(
-      `Validaciones académicas exitosas para Student ${enrollment.student.id}`,
-    );
   }
 }
