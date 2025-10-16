@@ -109,7 +109,7 @@ export class OptimizedQueryService {
       .innerJoin('ed.courseSection', 'cs')
       .where('e.student_id = :studentId', { studentId })
       .andWhere('cs.term_id = :termId', { termId })
-      .andWhere('ed.course_state = :status', { status: 'enrolled' })
+      .andWhere('ed.course_state = :status', { status: 'Enrolled' })
       .getRawOne();
 
     return parseInt(result.count, 10);
@@ -126,12 +126,11 @@ export class OptimizedQueryService {
     termId: string,
     manager?: EntityManager,
   ): Promise<EnrollmentDetail[]> {
-    const repository = manager
-      ? manager.getRepository(EnrollmentDetail)
-      : this.enrollmentDetailRepository;
+    const queryBuilder = manager
+      ? manager.createQueryBuilder(EnrollmentDetail, 'ed')
+      : this.enrollmentDetailRepository.createQueryBuilder('ed');
 
-    return repository
-      .createQueryBuilder('ed')
+    return queryBuilder
       .select([
         'ed.id',
         'ed.course_state',
@@ -147,7 +146,7 @@ export class OptimizedQueryService {
       .innerJoin('cs.course', 'c')
       .where('e.student_id = :studentId', { studentId })
       .andWhere('cs.term_id = :termId', { termId })
-      .andWhere('ed.course_state = :status', { status: 'enrolled' })
+      .andWhere('ed.course_state = :status', { status: 'Enrolled' })
       .orderBy('c.code', 'ASC')
       .getMany();
   }
@@ -162,12 +161,11 @@ export class OptimizedQueryService {
     courseSectionIds: string[],
     manager?: EntityManager,
   ): Promise<Schedule[]> {
-    const repository = manager
-      ? manager.getRepository(Schedule)
-      : this.scheduleRepository;
+    const queryBuilder = manager
+      ? manager.createQueryBuilder(Schedule, 's')
+      : this.scheduleRepository.createQueryBuilder('s');
 
-    return repository
-      .createQueryBuilder('s')
+    return queryBuilder
       .select([
         's.id',
         's.course_section_id',
