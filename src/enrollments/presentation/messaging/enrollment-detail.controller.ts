@@ -1,11 +1,11 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { EnrollmentDetailService } from '../services/enrollment-detail.service';
+import { EnrollmentDetailService } from '../../use-cases/enrollment';
 import {
   CreateEnrollmentDetailDto,
   ListEnrollmentDetailsDto,
   UpdateEnrollmentDetailDto,
-} from '../dto';
+} from '../../dto';
 
 @Controller()
 export class EnrollmentDetailsController {

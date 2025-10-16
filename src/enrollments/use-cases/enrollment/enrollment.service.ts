@@ -1,15 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Enrollment } from '../entities/enrollment.entity';
+import { Enrollment } from '../../entities/enrollment.entity';
 import {
   CreateEnrollmentDto,
   ListEnrollmentsDto,
   UpdateEnrollmentDto,
-} from '../dto';
-import { PaginationService, PaginatedResultDto } from '../../common';
-import { Student } from '../entities/external/student.entity';
-import { Term } from '../entities/external/term.entity';
+} from '../../dto';
+import { PaginationService, PaginatedResultDto } from '../../../common';
+import { Student } from '../../entities/external/student.entity';
+import { Term } from '../../entities/external/term.entity';
 
 @Injectable()
 export class EnrollmentsService {

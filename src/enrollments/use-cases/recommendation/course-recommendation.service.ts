@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Student } from '../entities/external/student.entity';
-import { StudyPlan } from '../entities/external/study-plan.entity';
-import { Course } from '../entities/external/course.entity';
-import { OptimizedQueryService } from './optimized-query.service';
+import { Student } from '../../entities/external/student.entity';
+import { StudyPlan } from '../../entities/external/study-plan.entity';
+import { Course } from '../../entities/external/course.entity';
+import { OptimizedQueryService } from '../../infrastructure/persistence/optimized-query.service';
 
 export interface RecommendedCourseDto {
   courseId: string;

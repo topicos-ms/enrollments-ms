@@ -20,10 +20,10 @@ import {
   EnrollmentsService,
   AcademicValidationService,
   AtomicEnrollmentService,
-  OptimizedQueryService,
   CourseRecommendationService,
-  EnrollmentErrorHandler,
-} from './services';
+  EnrollmentContextResolver,
+} from './use-cases';
+import { OptimizedQueryService } from './infrastructure/persistence/optimized-query.service';
 import {
   EnrollmentDetailsController,
   EnrollmentsController,
@@ -31,7 +31,14 @@ import {
   AtomicEnrollmentController,
   DatabasePerformanceController,
   StudentAdvisoryController,
-} from './controllers';
+} from './presentation/messaging';
+import {
+  AcademicLimitsPolicy,
+  CourseNotPassedPolicy,
+  PrerequisitePolicy,
+  ScheduleConflictPolicy,
+} from './domain/validation/policies';
+import { EnrollmentErrorHandler } from './presentation/errors/enrollment-error-handler.service';
 import { IdempotencyService, PaginationService, TransactionService } from '../common';
 
 @Module({
@@ -67,8 +74,13 @@ import { IdempotencyService, PaginationService, TransactionService } from '../co
     EnrollmentDetailService,
     AcademicValidationService,
     AtomicEnrollmentService,
-    OptimizedQueryService,
     CourseRecommendationService,
+    EnrollmentContextResolver,
+    OptimizedQueryService,
+    PrerequisitePolicy,
+    ScheduleConflictPolicy,
+    AcademicLimitsPolicy,
+    CourseNotPassedPolicy,
     EnrollmentErrorHandler,
     PaginationService,
     TransactionService,

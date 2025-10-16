@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Grade } from '../entities/external/grade.entity';
-import { Prerequisite } from '../entities/external/prerequisite.entity';
-import { Schedule } from '../entities/external/schedule.entity';
-import { EnrollmentDetail } from '../entities/enrollment-detail.entity';
+import { Grade } from '../../entities/external/grade.entity';
+import { Prerequisite } from '../../entities/external/prerequisite.entity';
+import { Schedule } from '../../entities/external/schedule.entity';
+import { EnrollmentDetail } from '../../entities/enrollment-detail.entity';
 
 @Injectable()
 export class OptimizedQueryService {

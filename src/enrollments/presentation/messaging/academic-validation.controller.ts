@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { AcademicValidationService } from '../services/academic-validation.service';
+import { AcademicValidationService } from '../../use-cases/validation';
 
 interface PrerequisiteCheckPayload {
   studentId: string;
