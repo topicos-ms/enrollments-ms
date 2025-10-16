@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { Grade } from '../../entities/external/grade.entity';
 import { Prerequisite } from '../../entities/external/prerequisite.entity';
 import { Schedule } from '../../entities/external/schedule.entity';
@@ -118,12 +118,19 @@ export class OptimizedQueryService {
   /**
    * Consulta optimizada para obtener detalles de inscripción del estudiante en un término
    * Utiliza IDX_enrollment_detail_student_term
+   * 
+   * @param manager - Opcional: EntityManager para leer cambios pendientes en la transacción actual
    */
   async getStudentEnrollmentDetails(
     studentId: string,
     termId: string,
+    manager?: EntityManager,
   ): Promise<EnrollmentDetail[]> {
-    return this.enrollmentDetailRepository
+    const repository = manager
+      ? manager.getRepository(EnrollmentDetail)
+      : this.enrollmentDetailRepository;
+
+    return repository
       .createQueryBuilder('ed')
       .select([
         'ed.id',
@@ -148,11 +155,18 @@ export class OptimizedQueryService {
   /**
    * Consulta optimizada para obtener horarios de secciones específicas
    * Utiliza IDX_schedule_course_section
+   * 
+   * @param manager - Opcional: EntityManager para consultas transaccionales
    */
   async getSchedulesBySections(
     courseSectionIds: string[],
+    manager?: EntityManager,
   ): Promise<Schedule[]> {
-    return this.scheduleRepository
+    const repository = manager
+      ? manager.getRepository(Schedule)
+      : this.scheduleRepository;
+
+    return repository
       .createQueryBuilder('s')
       .select([
         's.id',

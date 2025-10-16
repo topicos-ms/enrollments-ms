@@ -80,7 +80,9 @@ export class EnrollmentsService {
       .leftJoinAndSelect('enrollment.student', 'student')
       .leftJoinAndSelect('enrollment.term', 'term')
       .leftJoinAndSelect('enrollment.enrollment_details', 'details')
-      .leftJoinAndSelect('details.courseSection', 'courseSection');
+      .leftJoinAndSelect('details.courseSection', 'courseSection')
+      .leftJoinAndSelect('courseSection.course', 'course')
+      .leftJoinAndSelect('courseSection.schedules', 'schedules');
 
     if (student_id) {
       qb.andWhere('enrollment.student_id = :student_id', { student_id });
@@ -102,7 +104,14 @@ export class EnrollmentsService {
   async findOne(id: string): Promise<Enrollment> {
     const enrollment = await this.enrollmentRepository.findOne({
       where: { id },
-      relations: ['student', 'term', 'enrollment_details', 'enrollment_details.course_section'],
+      relations: [
+        'student',
+        'term',
+        'enrollment_details',
+        'enrollment_details.courseSection',
+        'enrollment_details.courseSection.course',
+        'enrollment_details.courseSection.schedules',
+      ],
     });
 
     if (!enrollment) {

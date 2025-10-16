@@ -81,7 +81,8 @@ export class AtomicEnrollmentService {
         const processed: EnrollmentResult[] = [];
 
         for (const item of payload) {
-          const result = await this.processSingleEnrollment(
+          // Procesar inscripción individual
+          const result = await this.processSingleEnrollmentInBatch(
             manager,
             item.dto,
             item.identifiers,
@@ -165,6 +166,59 @@ export class AtomicEnrollmentService {
 
     this.logger.log(
       `Inscripción exitosa. Cupos restantes: ${updatedCourseSection.quota_available}`,
+    );
+
+    return {
+      enrollmentDetail,
+      remainingQuota: updatedCourseSection.quota_available,
+      wasCreated: true,
+    };
+  }
+
+  /**
+   * Procesa una inscripción individual dentro de un lote
+   * IMPORTANTE: Crea el EnrollmentDetail ANTES de validar para que
+   * las validaciones vean los cambios pendientes en la transacción
+   */
+  private async processSingleEnrollmentInBatch(
+    manager: EntityManager,
+    dto: CreateEnrollmentDetailDto,
+    identifiers: ResolvedIdentifiers,
+  ): Promise<EnrollmentResult> {
+    const enrollment = await this.validateEnrollmentExists(
+      manager,
+      identifiers.enrollmentId,
+    );
+    const courseSection = await this.getCourseSectionWithLock(
+      manager,
+      identifiers.courseSectionId,
+    );
+
+    await this.validateNoDuplicateEnrollment(
+      manager,
+      identifiers.enrollmentId,
+      identifiers.courseSectionId,
+    );
+    this.ensureQuotaAvailable(courseSection);
+
+    // PRIMERO: Crear el EnrollmentDetail (pero NO decrementar cuota aún)
+    const enrollmentDetail = await this.createEnrollmentDetail(
+      manager,
+      dto,
+      identifiers,
+    );
+
+    // SEGUNDO: Validar (ahora las validaciones ven este detalle en la transacción)
+    await this.performAcademicValidations(manager, enrollment, courseSection);
+
+    // TERCERO: Decrementar cuota
+    const updatedCourseSection = await this.decrementQuota(
+      manager,
+      courseSection,
+    );
+
+    this.logger.log(
+      `Inscripción exitosa en lote. Cupos restantes: ${updatedCourseSection.quota_available}`,
     );
 
     return {

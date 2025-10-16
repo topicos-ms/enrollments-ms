@@ -55,7 +55,9 @@ export class EnrollmentDetailService {
     const qb = this.enrollmentDetailRepository
       .createQueryBuilder('detail')
       .leftJoinAndSelect('detail.enrollment', 'enrollment')
-      .leftJoinAndSelect('detail.course_section', 'course_section');
+      .leftJoinAndSelect('detail.courseSection', 'courseSection')
+      .leftJoinAndSelect('courseSection.course', 'course')
+      .leftJoinAndSelect('courseSection.schedules', 'schedules');
 
     if (enrollment_id) {
       qb.andWhere('detail.enrollment_id = :enrollment_id', { enrollment_id });
@@ -75,7 +77,12 @@ export class EnrollmentDetailService {
   async findOne(id: string): Promise<EnrollmentDetail> {
     const detail = await this.enrollmentDetailRepository.findOne({
       where: { id },
-      relations: ['enrollment', 'course_section'],
+      relations: [
+        'enrollment',
+        'courseSection',
+        'courseSection.course',
+        'courseSection.schedules',
+      ],
     });
 
     if (!detail) {

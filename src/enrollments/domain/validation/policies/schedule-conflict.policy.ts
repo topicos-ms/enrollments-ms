@@ -15,12 +15,13 @@ export class ScheduleConflictPolicy implements ValidationPolicy {
 
   async evaluate(
     context: ValidationContext,
-    _manager?: EntityManager,
+    manager?: EntityManager,
   ): Promise<ValidationReport> {
     const newSchedules =
-      await this.optimizedQueryService.getSchedulesBySections([
-        context.courseSectionId,
-      ]);
+      await this.optimizedQueryService.getSchedulesBySections(
+        [context.courseSectionId],
+        manager,
+      );
 
     if (newSchedules.length === 0) {
       return { errors: [], warnings: [] };
@@ -30,6 +31,7 @@ export class ScheduleConflictPolicy implements ValidationPolicy {
       await this.optimizedQueryService.getStudentEnrollmentDetails(
         context.studentId,
         context.termId,
+        manager,
       );
 
     if (enrolledDetails.length === 0) {
@@ -42,6 +44,7 @@ export class ScheduleConflictPolicy implements ValidationPolicy {
     const enrolledSchedules =
       await this.optimizedQueryService.getSchedulesBySections(
         enrolledSectionIds,
+        manager,
       );
 
     const conflicts: ValidationReport['errors'] = [];
