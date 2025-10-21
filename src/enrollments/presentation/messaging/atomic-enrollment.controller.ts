@@ -1,12 +1,12 @@
 import { BadRequestException, Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { AtomicEnrollmentService } from '../services';
-import { EnrollmentErrorHandler } from '../services/enrollment-error-handler.service';
+import { AtomicEnrollmentService } from '../../use-cases/enrollment';
+import { EnrollmentErrorHandler } from '../errors/enrollment-error-handler.service';
 import {
   CreateEnrollmentDetailBatchDto,
   CreateEnrollmentDetailDto,
-} from '../dto';
-import { IdempotencyService } from '../../common';
+} from '../../dto';
+import { IdempotencyService } from '../../../common';
 
 interface AtomicEnrollPayload {
   data: CreateEnrollmentDetailDto;

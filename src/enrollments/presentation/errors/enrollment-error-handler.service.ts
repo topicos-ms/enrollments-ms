@@ -1,4 +1,5 @@
 import { Injectable, Logger, HttpException } from '@nestjs/common';
+import { DomainError } from '../../domain/errors';
 
 /**
  * Maneja errores de inscripción y los traduce a respuestas amigables
@@ -12,6 +13,14 @@ export class EnrollmentErrorHandler {
    */
   handleError(error: any): { message: string; code: string; details?: any } {
     this.logger.error(`Error: ${error.message}`, error.stack);
+
+    if (error instanceof DomainError) {
+      return {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+      };
+    }
 
     // Si es una HttpException de NestJS, extraer la respuesta
     if (error instanceof HttpException) {

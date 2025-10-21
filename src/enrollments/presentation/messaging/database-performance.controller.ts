@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { OptimizedQueryService } from '../services/optimized-query.service';
+import { OptimizedQueryService } from '../../infrastructure/persistence/optimized-query.service';
 
 interface CourseIdPayload { courseId: string; }
 interface StudentCoursesPayload { studentId: string; courseIds: string[] | string; }

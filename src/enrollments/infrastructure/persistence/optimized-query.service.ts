@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Grade } from '../entities/external/grade.entity';
-import { Prerequisite } from '../entities/external/prerequisite.entity';
-import { Schedule } from '../entities/external/schedule.entity';
-import { EnrollmentDetail } from '../entities/enrollment-detail.entity';
+import { Repository, EntityManager } from 'typeorm';
+import { Grade } from '../../entities/external/grade.entity';
+import { Prerequisite } from '../../entities/external/prerequisite.entity';
+import { Schedule } from '../../entities/external/schedule.entity';
+import { EnrollmentDetail } from '../../entities/enrollment-detail.entity';
 
 @Injectable()
 export class OptimizedQueryService {
@@ -109,7 +109,7 @@ export class OptimizedQueryService {
       .innerJoin('ed.courseSection', 'cs')
       .where('e.student_id = :studentId', { studentId })
       .andWhere('cs.term_id = :termId', { termId })
-      .andWhere('ed.course_state = :status', { status: 'enrolled' })
+      .andWhere('ed.course_state = :status', { status: 'Enrolled' })
       .getRawOne();
 
     return parseInt(result.count, 10);
@@ -118,13 +118,19 @@ export class OptimizedQueryService {
   /**
    * Consulta optimizada para obtener detalles de inscripción del estudiante en un término
    * Utiliza IDX_enrollment_detail_student_term
+   * 
+   * @param manager - Opcional: EntityManager para leer cambios pendientes en la transacción actual
    */
   async getStudentEnrollmentDetails(
     studentId: string,
     termId: string,
+    manager?: EntityManager,
   ): Promise<EnrollmentDetail[]> {
-    return this.enrollmentDetailRepository
-      .createQueryBuilder('ed')
+    const queryBuilder = manager
+      ? manager.createQueryBuilder(EnrollmentDetail, 'ed')
+      : this.enrollmentDetailRepository.createQueryBuilder('ed');
+
+    return queryBuilder
       .select([
         'ed.id',
         'ed.course_state',
@@ -140,7 +146,7 @@ export class OptimizedQueryService {
       .innerJoin('cs.course', 'c')
       .where('e.student_id = :studentId', { studentId })
       .andWhere('cs.term_id = :termId', { termId })
-      .andWhere('ed.course_state = :status', { status: 'enrolled' })
+      .andWhere('ed.course_state = :status', { status: 'Enrolled' })
       .orderBy('c.code', 'ASC')
       .getMany();
   }
@@ -148,12 +154,18 @@ export class OptimizedQueryService {
   /**
    * Consulta optimizada para obtener horarios de secciones específicas
    * Utiliza IDX_schedule_course_section
+   * 
+   * @param manager - Opcional: EntityManager para consultas transaccionales
    */
   async getSchedulesBySections(
     courseSectionIds: string[],
+    manager?: EntityManager,
   ): Promise<Schedule[]> {
-    return this.scheduleRepository
-      .createQueryBuilder('s')
+    const queryBuilder = manager
+      ? manager.createQueryBuilder(Schedule, 's')
+      : this.scheduleRepository.createQueryBuilder('s');
+
+    return queryBuilder
       .select([
         's.id',
         's.course_section_id',

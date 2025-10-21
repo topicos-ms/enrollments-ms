@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { CourseRecommendationService } from '../services';
-import type { RecommendedCoursesResponse } from '../services/course-recommendation.service';
+import { CourseRecommendationService } from '../../use-cases/recommendation';
+import type { RecommendedCoursesResponse } from '../../use-cases/recommendation/course-recommendation.service';
 
 interface RecommendedCoursesPayload {
   studentId?: string;
