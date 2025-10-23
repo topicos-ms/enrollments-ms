@@ -2,16 +2,8 @@ import { BadRequestException, Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AtomicEnrollmentService } from '../../use-cases/enrollment';
 import { EnrollmentErrorHandler } from '../errors/enrollment-error-handler.service';
-import {
-  CreateEnrollmentDetailBatchDto,
-  CreateEnrollmentDetailDto,
-} from '../../dto';
+import { CreateEnrollmentDetailBatchDto } from '../../dto';
 import { IdempotencyService } from '../../../common';
-
-interface AtomicEnrollPayload {
-  data: CreateEnrollmentDetailDto;
-  idempotencyKey?: string;
-}
 
 interface AtomicEnrollBatchPayload {
   data: CreateEnrollmentDetailBatchDto;
@@ -29,52 +21,6 @@ export class AtomicEnrollmentController {
     private readonly idempotencyService: IdempotencyService,
     private readonly errorHandler: EnrollmentErrorHandler,
   ) {}
-
-  @MessagePattern('enrollments.atomic.enroll')
-  async enrollStudent(@Payload() payload: AtomicEnrollPayload) {
-    const { data, idempotencyKey } = payload;
-
-    if (!idempotencyKey) {
-      throw new BadRequestException(
-        'idempotencyKey is required for enrollment operations',
-      );
-    }
-
-    const operationKey = `enroll:${idempotencyKey}:${data.enrollment_id}:${data.course_section_id}`;
-
-    try {
-      const result = await this.idempotencyService.executeWithIdempotency(
-        operationKey,
-        async () => {
-          return await this.atomicEnrollmentService.enrollStudentInCourseSection(
-            data,
-          );
-        },
-      );
-
-      return {
-        success: true,
-        message: result.isNew
-          ? 'Inscripción realizada exitosamente'
-          : 'Inscripción procesada previamente',
-        data: {
-          enrollmentDetail: result.data.enrollmentDetail,
-          remainingQuota: result.data.remainingQuota,
-          isNewOperation: result.isNew,
-        },
-      };
-    } catch (error) {
-      const errorInfo = this.errorHandler.handleError(error);
-      return {
-        success: false,
-        message: errorInfo.message,
-        error: {
-          code: errorInfo.code,
-          details: errorInfo.details,
-        },
-      };
-    }
-  }
 
   @MessagePattern('enrollments.atomic.enrollBatch')
   async enrollStudentBatch(@Payload() payload: AtomicEnrollBatchPayload) {

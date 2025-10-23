@@ -23,6 +23,9 @@ import {
   CourseRecommendationService,
   EnrollmentContextResolver,
 } from './use-cases';
+import { IdentifiersResolver } from './use-cases/enrollment/atomic/helpers/identifiers-resolver.service';
+import { CourseSectionQuotaService } from './use-cases/enrollment/atomic/helpers/quota.service';
+import { EnrollmentProcessorService } from './use-cases/enrollment/atomic/helpers/enrollment-processor.service';
 import { OptimizedQueryService } from './infrastructure/persistence/optimized-query.service';
 import {
   EnrollmentDetailsController,
@@ -76,6 +79,9 @@ import { IdempotencyService, PaginationService, TransactionService } from '../co
     AtomicEnrollmentService,
     CourseRecommendationService,
     EnrollmentContextResolver,
+    IdentifiersResolver,
+    CourseSectionQuotaService,
+    EnrollmentProcessorService,
     OptimizedQueryService,
     PrerequisitePolicy,
     ScheduleConflictPolicy,
