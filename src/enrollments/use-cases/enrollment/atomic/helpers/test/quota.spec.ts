@@ -115,7 +115,7 @@ describe('CourseSectionQuotaService', () => {
 
     beforeEach(() => {
       qb = createMockQueryBuilder();
-      manager = {
+      manager = { 
         createQueryBuilder: jest.fn().mockReturnValue(qb),
       } as unknown as jest.Mocked<EntityManager>;
     });

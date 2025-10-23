@@ -5,6 +5,7 @@ import { QuotaExceededError } from '../../../../domain/errors';
 
 @Injectable()
 export class CourseSectionQuotaService {
+  // Obtiene la sección del curso con un bloqueo pesimista; usado por EnrollmentProcessorService para reservar la fila antes de inscribir.
   async getWithLockOrThrow(
     manager: EntityManager,
     courseSectionId: string,
@@ -21,6 +22,7 @@ export class CourseSectionQuotaService {
     return courseSection;
   }
 
+  // Verifica que aún exista cupo disponible; EnrollmentProcessorService lo invoca tras obtener la sección.
   ensureAvailableOrThrow(courseSection: CourseSection): void {
     if (courseSection.quota_available <= 0 || courseSection.quota_available == null) {
       throw new QuotaExceededError(
@@ -30,6 +32,7 @@ export class CourseSectionQuotaService {
     }
   }
 
+  // Descuenta una unidad del cupo y devuelve cuánto queda; EnrollmentProcessorService lo usa después de crear el detalle de inscripción.
   async decrementAndReturn(
     manager: EntityManager,
     courseSectionId: string,
@@ -56,4 +59,3 @@ export class CourseSectionQuotaService {
     return updatedRow?.quota_available ?? 0;
   }
 }
-
