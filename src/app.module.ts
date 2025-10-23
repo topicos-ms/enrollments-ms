@@ -7,6 +7,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { envs } from './config/envs';
 import { EventPublisherInterceptor, EVENT_EMITTER } from './common/events/event-publisher.interceptor';
 import { HealthController } from './common/health.controller';
+import { SeedingController } from './seeding.controller';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { HealthController } from './common/health.controller';
     ]),
     EnrollmentsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, SeedingController],
   providers: [EventPublisherInterceptor],
   exports: [EventPublisherInterceptor],
 })
